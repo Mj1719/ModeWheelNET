@@ -347,3 +347,65 @@ a:focus, button:focus{ outline: 2px solid rgba(255,255,255,.30); outline-offset:
 @media (max-width: 420px){
   .mobile-nav .navbtn{ font-size: 14px; }
 }
+
+
+
+/* === Mobile layout adjustments === */
+@media (max-width: 820px) {
+  .mobile-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    padding: 8px 10px;
+  }
+
+  .mobile-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .mobile-header .title { font-size: 18px; }
+  .mobile-header .subtitle { font-size: 12px; opacity: 0.85; }
+
+  .hamburger {
+    font-size: 22px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.25);
+    color: inherit;
+  }
+
+  .mobile-drawer {
+    margin-top: 8px;
+    padding: 10px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.25);
+    display: grid;
+    gap: 8px;
+  }
+
+  .mobile-drawer a {
+    display: block;
+    padding: 12px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+  }
+
+  /* Remove frames/inlays on mobile */
+  .frame-outer,
+  .stone.frame-outer,
+  #wheel-stage.frame-outer,
+  .inlay {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+}
