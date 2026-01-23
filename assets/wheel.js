@@ -5190,8 +5190,20 @@ function getAngleFromEvent(e) {
   return Math.atan2(loc.y, loc.x) * 180 / Math.PI;
 }
 
-// ----- Pointer Down -----
+// ----- Pointer Down / Drag Intent -----
+// Mobile: avoid "scroll jam" by only locking the page once the gesture is clearly a wheel drag.
+// If the initial motion is mostly vertical, we treat it as a scroll and do NOT start dragging.
+let pendingDrag = null; // 'color' | 'notes' | null
+let pendingPointerId = null;
+let startClientX = 0, startClientY = 0;
+
+const DRAG_DECIDE_PX = 10;      // how far to move before we decide intent
+const VERTICAL_BIAS = 1.25;     // >1 means "more vertical than horizontal" = scroll intent
+
 svg.addEventListener('pointerdown', (e) => {
+  // Only capture primary pointer. Ignore secondary touches.
+  if (e.pointerType === 'touch' && !e.isPrimary) return;
+
   const pt = svg.createSVGPoint();
   pt.x = e.clientX;
   pt.y = e.clientY;
@@ -5202,39 +5214,97 @@ svg.addEventListener('pointerdown', (e) => {
 
   // define grab zones
   const colorInner = 20;                    // inner radius where color grab starts
-  const colorOuter = R_middle * 0.85;        // outer boundary of color zone
-  const noteInner  = colorOuter -6;       // inner boundary of note zone
+  const colorOuter = R_middle * 0.85;       // outer boundary of color zone
+  const noteInner  = colorOuter - 6;        // inner boundary of note zone
   const noteOuter  = R_middle + noteR + 4;  // outer boundary of note zone
 
-  // ----- color ring -----
+  pendingDrag = null;
+  pendingPointerId = e.pointerId;
+  startClientX = e.clientX;
+  startClientY = e.clientY;
+
+  // Determine which ring they grabbed, but DON'T lock scrolling yet.
   if (dist >= colorInner && dist < colorOuter) {
-    dragging = 'color';
-    tempColorRotation = 0;
-    suppressVisualUpdate = true; // 🟡 freeze visuals until release
-
-    // use exact current transform, no jump
-    const currentTransform = colorRotGroup.getAttribute('transform');
-    const match = currentTransform ? currentTransform.match(/rotate\((-?\d+(\.\d+)?)\)/) : null;
-    startGroupRotation = match ? parseFloat(match[1]) : state.colorRot;
-    state.colorRot = startGroupRotation;
-
-    lastAngle = getAngleFromEvent(e);
-    e.preventDefault();
+    pendingDrag = 'color';
+  } else if (dist >= noteInner && dist <= noteOuter) {
+    pendingDrag = 'notes';
+  } else {
+    return;
   }
 
-  // ----- note ring -----
-  else if (dist >= noteInner && dist <= noteOuter) {
-    dragging = 'notes';
-    suppressVisualUpdate = true; // stop visuals mid-drag
+  // If they click with mouse (desktop), start immediately (no scroll conflict).
+  if (e.pointerType === 'mouse') {
+    dragging = pendingDrag;
+    pendingDrag = null;
+
+    if (dragging === 'color') {
+      tempColorRotation = 0;
+      suppressVisualUpdate = true;
+
+      const currentTransform = colorRotGroup.getAttribute('transform');
+      const match = currentTransform ? currentTransform.match(/rotate\((-?\d+(\.\d+)?)\)/) : null;
+      startGroupRotation = match ? parseFloat(match[1]) : state.colorRot;
+      state.colorRot = startGroupRotation;
+    } else if (dragging === 'notes') {
+      suppressVisualUpdate = true;
+      suppressVisualUpdate = true;
+    }
+
     lastAngle = getAngleFromEvent(e);
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
+    return;
   }
-});
+}, { passive: true });
 
 
 // ----- Pointer Move -----
 window.addEventListener('pointermove', (e) => {
+  // If a drag is pending (touch), decide whether it's scroll or wheel drag.
+  if (!dragging && pendingDrag && e.pointerId === pendingPointerId) {
+    const dx = e.clientX - startClientX;
+    const dy = e.clientY - startClientY;
+    const adx = Math.abs(dx);
+    const ady = Math.abs(dy);
+
+    // Wait until the gesture is big enough to classify intent.
+    if (adx + ady < DRAG_DECIDE_PX) return;
+
+    // Mostly vertical => user intends to scroll the page. Give up the drag.
+    if (ady > adx * VERTICAL_BIAS) {
+      pendingDrag = null;
+      pendingPointerId = null;
+      return;
+    }
+
+    // Otherwise: user intends to drag the wheel. Lock in.
+    dragging = pendingDrag;
+    pendingDrag = null;
+
+    // Capture pointer so the drag continues even if finger leaves the SVG slightly.
+    try { svg.setPointerCapture(e.pointerId); } catch (_) {}
+
+    if (dragging === 'color') {
+      tempColorRotation = 0;
+      suppressVisualUpdate = true;
+
+      const currentTransform = colorRotGroup.getAttribute('transform');
+      const match = currentTransform ? currentTransform.match(/rotate\((-?\d+(\.\d+)?)\)/) : null;
+      startGroupRotation = match ? parseFloat(match[1]) : state.colorRot;
+      state.colorRot = startGroupRotation;
+    } else if (dragging === 'notes') {
+      suppressVisualUpdate = true;
+    }
+
+    lastAngle = getAngleFromEvent(e);
+    if (e.cancelable) e.preventDefault();
+    // fall through to apply movement this frame if any
+  }
+
   if (!dragging) return;
+
+  // While actively dragging, prevent vertical scroll "slip" on mobile.
+  if (e.cancelable) e.preventDefault();
+
   const angle = getAngleFromEvent(e);
   const delta = angle - lastAngle;
   lastAngle = angle;
@@ -5252,11 +5322,13 @@ window.addEventListener('pointermove', (e) => {
     colorRotGroup.setAttribute('transform', `rotate(${visualRotation})`);
     state.colorRot = visualRotation;
   }
-});
+}, { passive: false });
 
 
-// ----- Pointer Up -----
-window.addEventListener('pointerup', () => {
+// ----- Pointer Up / Cancel -----
+function endPointerDrag() {
+  pendingDrag = null;
+  pendingPointerId = null;
   if (!dragging) return;
 
   if (dragging === 'notes') {
@@ -5283,37 +5355,41 @@ window.addEventListener('pointerup', () => {
       state.colorStep = best;
     }
 
-const targetRotation = -state.colorStep * 30;
-let startRotation = state.colorRot;
+    const targetRotation = -state.colorStep * 30;
+    let startRotation = state.colorRot;
 
-// 🩹 Fix: choose the shortest direction to target
-let delta = targetRotation - startRotation;
-if (delta > 180) delta -= 360;
-if (delta < -180) delta += 360;
+    // choose the shortest direction to target
+    let delta = targetRotation - startRotation;
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
 
-const duration = 120; // ms
-const startTime = performance.now();
+    const duration = 120; // ms
+    const startTime = performance.now();
 
-function animateSnap(now) {
-  const t = Math.min(1, (now - startTime) / duration);
-  const ease = t < 1 ? (1 - Math.cos(t * Math.PI)) / 2 : 1;
-  const current = startRotation + delta * ease;
-  colorRotGroup.setAttribute('transform', `rotate(${current})`);
-  if (t < 1) requestAnimationFrame(animateSnap);
-  else {
-    state.colorRot = targetRotation;
-    tempColorRotation = 0;
-    updateAllVisuals();
-  }
-}
-requestAnimationFrame(animateSnap);
+    function animateSnap(now) {
+      const t = Math.min(1, (now - startTime) / duration);
+      const ease = t < 1 ? (1 - Math.cos(t * Math.PI)) / 2 : 1;
+      const current = startRotation + delta * ease;
+      colorRotGroup.setAttribute('transform', `rotate(${current})`);
+      if (t < 1) requestAnimationFrame(animateSnap);
+      else {
+        state.colorRot = targetRotation;
+        tempColorRotation = 0;
+        updateAllVisuals();
+      }
+    }
+    requestAnimationFrame(animateSnap);
   }
 
   suppressVisualUpdate = false;
   dragging = null;
-});
+}
 
-// Prevent repeated resume() calls and desync on small sets
+window.addEventListener('pointerup', endPointerDrag, { passive: true });
+window.addEventListener('pointercancel', endPointerDrag, { passive: true });
+
+
+// Prevent repeated resume() calls and desync on  and desync on small sets
 let audioReady = false;
 function ensureAudioReady() {
   if (!audioReady && ctx.state === "suspended") {

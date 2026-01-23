@@ -31,7 +31,7 @@ svg#wheel {
   max-height: 720px;
   display: block;
   user-select: none;
-  touch-action: pan-y;
+  touch-action: none;
 }
 
 @media (max-width: 768px) {
