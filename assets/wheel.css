@@ -31,7 +31,7 @@ svg#wheel {
   max-height: 720px;
   display: block;
   user-select: none;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 @media (max-width: 768px) {
@@ -502,4 +502,21 @@ text.note-label.glow-active {
 }
 #key-rows .mode-row > *{
   margin: 0 !important;
+}
+
+
+
+/* === Mobile interaction fixes === */
+/* Prevent accidental text selection/highlight and reduce zoom quirks */
+#mw-container, #mw-container * {
+  -webkit-tap-highlight-color: transparent;
+}
+
+#controls, #mode-controls, #action-controls, #interval-controls, #key-area, #key-rows {
+  touch-action: pan-y;
+}
+
+/* Buttons/inputs: allow taps without triggering double-tap zoom */
+#mw-container button, #mw-container input {
+  touch-action: manipulation;
 }
