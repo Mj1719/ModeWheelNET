@@ -3470,8 +3470,8 @@ const MODE_FAMILIES = {
     ]
   },
 
-  "Heptatonic 62": {
-    familyIndex: 62, // -24 / +24 = 48
+  "Heptatonic 60": {
+    familyIndex: 60, // -24 / +24 = 48
     noteCount: 7,
     names: ["Mode 1", "Mode 2", "Mode 3", "Mode 4", "Mode 5", "Mode 6", "Mode 7"],
     sets: [
@@ -3484,8 +3484,8 @@ const MODE_FAMILIES = {
       [0,1,2,3,4,6,7], // -13 (flattest)
     ]
   },
-  "Heptatonic 63": {
-    familyIndex: 63, // -24 / +24 = 48
+  "Heptatonic 61": {
+    familyIndex: 61, // -24 / +24 = 48
     noteCount: 7,
     names: ["Mode 1", "Mode 2", "Mode 3", "Mode 4", "Mode 5", "Mode 6", "Mode 7"],
     sets: [
@@ -3498,8 +3498,8 @@ const MODE_FAMILIES = {
       [0,1,2,7,8,10,11], // +3,
     ]
   },
-  "Heptatonic 60": {
-    familyIndex: 60, // -24 / +24 = 48
+  "Heptatonic 62": {
+    familyIndex: 62, // -24 / +24 = 48
     noteCount: 7,
     names: ["Mode 1", "Mode 2", "Mode 3", "Mode 4", "Mode 5", "Mode 6", "Mode 7"],
     sets: [
@@ -3512,8 +3512,8 @@ const MODE_FAMILIES = {
       [0,1,2,3,4,5,8], // -13 (flattest)
     ]
   },
-  "Heptatonic 61": {
-    familyIndex: 61, // -24 / +24 = 48
+  "Heptatonic 63": {
+    familyIndex: 63, // -24 / +24 = 48
     noteCount: 7,
     names: ["Mode 1", "Mode 2", "Mode 3", "Mode 4", "Mode 5", "Mode 6", "Mode 7"],
     sets: [
