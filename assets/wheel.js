@@ -2604,7 +2604,7 @@ const MODE_FAMILIES = {
     ]
   },
 // 7 note scales
-   "Diatonic": {
+   "Major": {
     familyIndex: 1, // -6 / +6 = 12
     noteCount: 7,
     names: ["Ionian","Dorian","Phrygian","Lydian","Mixolydian","Aeolian","Locrian"],
@@ -4739,7 +4739,7 @@ let state={
 
 // Family selector state
 let activeNoteCount=7;
-let activeFamilyKey="Diatonic";
+let activeFamilyKey="Major";
 let activeModeIndex=0;
 
 // ---------- Audio (pooled, warm & light) ----------
